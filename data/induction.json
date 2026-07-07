@@ -1,0 +1,8 @@
+[
+    {
+        "id": "induction_example",
+        "prompt": "tok17 tok83 tok9 tok17",
+        "correct": " tok83",
+        "incorrect": " tok9"
+    }
+]
