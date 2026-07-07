@@ -39,7 +39,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
+# Load model and examples once and cache them for the session
 @st.cache_resource(show_spinner="Loading GPT-2 Small...")
 def get_model_and_examples():
     cfg = load_config(CONFIG_PATH)

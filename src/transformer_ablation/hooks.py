@@ -35,3 +35,10 @@ def make_hooks(ablation_type: str, layer: int):
     if ablation_type == "residual_stream":
         return residual_stream_hooks(layer)
     raise ValueError(f"Unknown ablation type: {ablation_type}")
+
+# Hooks for ablation of individual attention heads
+def ablate_head(z, hook, head):
+    z = z.clone()
+    z[:, :, head, :] = 0
+    return z
+
