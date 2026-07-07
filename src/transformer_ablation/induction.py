@@ -1,6 +1,7 @@
 import torch
 import random
 
+# Generate a set of prompts for testing induction behavior in the model
 def generate_induction_prompts(model, num_examples=100, seq_len=5):
     examples = []
     vocab_size = model.cfg.d_vocab
