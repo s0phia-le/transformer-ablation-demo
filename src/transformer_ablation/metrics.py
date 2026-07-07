@@ -45,3 +45,22 @@ def generate_continuation(model, prompt: str, hooks=None, max_new_tokens: int = 
             with model.hooks(fwd_hooks=hooks):
                 output = model.generate(tokens, max_new_tokens=max_new_tokens, do_sample=False, verbose=False)
     return model.tokenizer.decode(output[0, tokens.shape[1]:])
+
+def induction_score(model, examples, hooks=None):
+    scores = []
+
+    for ex in examples:
+        with torch.no_grad():
+            if hooks:
+                logits = model.run_with_hooks(ex["tokens"], fwd_hooks=hooks)
+
+            else:
+                logits = model(ex["tokens"])
+
+        final_logits = logits[0,-1]
+
+        target = ex["target"]
+
+        scores.append(final_logits[target].item())
+
+    return sum(scores) / len(scores)
