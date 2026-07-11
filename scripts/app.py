@@ -472,24 +472,56 @@ elif page == "Induction Head Ablation":
             ].head(20)
         )
 
+        plot_df = df.head(20).copy()
+        plot_df["Head"] = (
+            "L"
+            + plot_df["layer"].astype(str)
+            + "H"
+            + plot_df["head"].astype(str)
+        )
+
         chart = (
-            alt.Chart(df.head(20))
+            alt.Chart(plot_df)
             .mark_bar()
             .encode(
                 x=alt.X(
-                    "layer:N",
-                    title="Layer"
+                    "Head:N",
+                    sort="-y",
+                    title="Attention Head"
                 ),
                 y=alt.Y(
                     "induction_score:Q",
-                    title="Induction score"
+                    title="Induction Score"
                 ),
                 color=alt.Color(
-                    "head:N",
-                    title="Head",
-                    scale=alt.Scale(range=[GOLD, PINK, "#c65a4a"])
-                )
+                    "layer:N",
+                    title="Layer",
+                    scale=alt.Scale(
+                        range=[
+                            "#AEC6CF",  # pastel blue
+                            "#FFD1DC",  # pastel pink
+                            "#CDEAC0",  # pastel green
+                            "#FFF1B6",  # pastel yellow
+                            "#D7C6F7",  # lavender
+                            "#FFDAC1",  # peach
+                            "#B5EAD7",  # mint
+                            "#E2CFC4",  # beige
+                            "#C7CEEA",  # periwinkle
+                            "#F8C8DC",  # rose
+                            "#D5ECC2",  # sage
+                            "#FDE2A7",  # light apricot
+                        ]
+                    )
+                ),
+                tooltip=[
+                    "layer",
+                    "head",
+                    alt.Tooltip("induction_score:Q", format=".3f"),
+                    alt.Tooltip("drop:Q", format=".3f"),
+                    alt.Tooltip("attention_score:Q", format=".3f"),
+                ],
             )
+            .properties(height=450)
         )
 
         st.altair_chart(chart, use_container_width=True)
