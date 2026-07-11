@@ -1,6 +1,8 @@
 import torch
 import random
+import json
 
+from pathlib import Path
 from dataclasses import dataclass
 
 @dataclass
@@ -85,4 +87,17 @@ def create_custom_induction_prompt(prompt, answer, repeat_position):
             answer=answer,
             repeat_position=repeat_position
         )
+    ]
+
+def load_induction_prompts(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    return [
+        InductionExample(
+            prompt=item["prompt"],
+            answer=item["answer"],
+            repeat_position=item["repeat_position"]
+        )
+        for item in data
     ]

@@ -13,7 +13,13 @@ from transformer_ablation.metrics import generate_continuation, logit_diff_from_
 from transformer_ablation.model import load_model
 from transformer_ablation.plotting import plot_layer_sweep
 from transformer_ablation.prompts import build_examples
-from transformer_ablation.induction import generate_induction_prompts, generate_natural_prompts, create_custom_induction_prompt
+from transformer_ablation.induction import (
+    InductionExample,
+    generate_induction_prompts,
+    generate_natural_prompts,
+    create_custom_induction_prompt,
+    load_induction_prompts
+)
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "default.yaml"
 ABLATION_LABELS = {
@@ -194,6 +200,7 @@ if page == "Layer Ablation":
         st.download_button("Download CSV", df.to_csv(index=False), file_name="ablation_results.csv")
 
 elif page == "Induction Head Ablation":
+
     st.sidebar.header("Induction Head Controls")
 
     prompt_source = st.sidebar.radio(
@@ -205,51 +212,64 @@ elif page == "Induction Head Ablation":
         ]
     )
 
-
     custom_prompt = None
     custom_answer = None
     custom_position = None
 
+    if prompt_source == "Random tokens":
 
-    if prompt_source == "Custom prompt":
-
-        custom_prompt = st.sidebar.text_area(
-            "Prompt",
-            value="The cat sat on the mat. The cat"
+        num_examples = st.sidebar.number_input(
+            "Number of random induction examples",
+            min_value=5,
+            max_value=500,
+            value=50,
+            step=5
         )
 
-        custom_answer = st.sidebar.text_input(
-            "Expected continuation",
-            value=" sat"
+    elif prompt_source == "Natural language":
+
+        natural_examples = load_induction_prompts("data/induction_prompts.json")
+
+        selected_prompt = st.sidebar.selectbox(
+            "Choose induction prompt",
+            options=[
+                ex.prompt for ex in natural_examples
+            ]
         )
 
-        custom_position = st.sidebar.number_input(
-            "Position of repeated token",
-            min_value=0,
-            value=1
-        )
+        add_custom = st.sidebar.checkbox("Add custom prompt")
 
-    num_examples = st.number_input(
-        "Number of induction examples",
-        min_value=5,
-        max_value=500,
-        value=20,
-        step=5
-    )
+        if add_custom:
 
-    max_layers = st.number_input(
+            custom_prompt = st.sidebar.text_area("Custom prompt", value="The cat sat on the mat. The cat")
+
+            custom_answer = st.sidebar.text_input("Expected continuation", value=" sat")
+
+    elif prompt_source == "Custom prompt":
+
+        custom_prompt = st.sidebar.text_area("Prompt", value="The cat sat on the mat. The cat")
+
+        custom_answer = st.sidebar.text_input("Expected continuation", value=" sat")
+
+        custom_position = st.sidebar.number_input("Position of repeated token", min_value=0, value=1)
+
+    st.sidebar.divider()
+
+    st.sidebar.subheader("Model Sweep")
+
+    max_layers = st.sidebar.number_input(
         "Number of layers to test",
         min_value=1,
         max_value=model.cfg.n_layers,
-        value=None,
+        value=model.cfg.n_layers,
         step=1
     )
 
-    max_heads = st.number_input(
+    max_heads = st.sidebar.number_input(
         "Number of heads per layer to test",
         min_value=1,
         max_value=model.cfg.n_heads,
-        value=None,
+        value=model.cfg.n_heads,
         step=1
     )
 
