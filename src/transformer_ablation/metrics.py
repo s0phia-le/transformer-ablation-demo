@@ -87,17 +87,17 @@ def induction_attention_score(model, examples):
             ]
 
             # shape: batch, heads, query, key
-
-            pattern = pattern[0]
+            #pattern = pattern[0]
 
             final_position = tokens.shape[1] - 1
-
             previous_position = 0
+            pattern = pattern[:, :, final_position, previous_position]
 
+            # check if final token attends to the first token
             for head in range(n_heads):
-                attention = pattern[head, final_position, previous_position]
+                attention = pattern[0, :, final_position, previous_position]
 
-                scores[layer, head] += attention 
+                scores[layer] += attention 
                 counts[layer, head] += 1
 
     return scores / counts

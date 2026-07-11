@@ -30,38 +30,65 @@ def run_ablation_sweep(model, examples, ablation_types: list[str]) -> pd.DataFra
     return pd.DataFrame(rows)
 
 
-def run_head_sweep(model, induction_examples):
-    baseline = induction_score(model, induction_examples)
+def run_head_sweep(model, examples, max_layers=None,max_heads=None, progress=None, stop_flag=None):
 
-    rows = []
+    if max_layers is None:
+        max_layers = model.cfg.n_layers
 
-    for layer in range(model.cfg.n_layers):
-        for head in range(model.cfg.n_heads):
+    if max_heads is None:
+        max_heads = model.cfg.n_heads
+
+    baseline = induction_score(
+        model,
+        examples
+    )
+
+    rows=[]
+    completed = 0
+    total = max_layers * max_heads
+
+    for layer in range(max_layers):
+
+        for head in range(max_heads):
+
+            if stop_flag and stop_flag():
+                print("Stopping head sweep")
+                return pd.DataFrame(rows)
+
             hooks = [
                 (
-                    f"blocks.{layer}.attn.hook_z",
-                    lambda z, hook, h=head: ablate_head(z, hook, h)
+                    "blocks.%d.attn.hook_z" % layer,
+                    lambda z, hook, h=head:
+                        ablate_head(z, hook, h)
                 )
             ]
 
             score = induction_score(
-                model, induction_examples, hooks=hooks
+                model,
+                examples,
+                hooks=hooks
             )
+
+            drop = baseline - score
 
             rows.append(
                 {
                     "layer": layer,
                     "head": head,
-                    "baseline_logit_diff": baseline,
-                    "ablated_logit_diff": score,
-                    "drop_in_logit_diff": baseline - score,
+                    "drop": drop
                 }
             )
 
-            print(layer, head, baseline - score)
+            completed += 1
+            if progress:
+                progress(completed / total)
+
     return pd.DataFrame(rows)
 
-def rank_induction_heads(model, examples):
+def run_attention_sweep(model, examples, max_layers=None, max_heads=None, progress=None, stop_flag=None):
+    if stop_flag and stop_flag():
+        return pd.DataFrame(rows)
+    
     attention_scores = induction_attention_score(model, examples)
 
     rows = []

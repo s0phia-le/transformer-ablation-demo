@@ -7,7 +7,7 @@ import torch
 
 from transformer_ablation.config import load_config
 from transformer_ablation.diagram import architecture_diagram_svg
-from transformer_ablation.experiment import run_ablation_sweep, run_head_sweep, rank_induction_heads
+from transformer_ablation.experiment import run_ablation_sweep, run_head_sweep, run_attention_sweep
 from transformer_ablation.hooks import make_hooks
 from transformer_ablation.metrics import generate_continuation, logit_diff_from_logits, topk_predictions
 from transformer_ablation.model import load_model
@@ -189,36 +189,113 @@ with tab2:
 
     st.header("Induction Head Detection")
 
-    if st.button("Find induction heads"):
+    st.subheader("Experiment Controls")
 
-        with st.spinner(
-            "Testing all attention heads..."
-        ):
+    num_examples = st.number_input(
+        "Number of induction examples",
+        min_value=5,
+        max_value=500,
+        value=20,
+        step=5
+    )
 
-            induction_examples = generate_induction_prompts(
-                model,
-                num_examples=200
-            )
+    max_layers = st.number_input(
+        "Number of layers to test",
+        min_value=1,
+        max_value=model.cfg.n_layers,
+        value=model.cfg.n_layers,
+        step=1
+    )
 
-            ablation_df = run_head_sweep(model, induction_examples)
+    max_heads = st.number_input(
+        "Number of heads per layer to test",
+        min_value=1,
+        max_value=model.cfg.n_heads,
+        value=model.cfg.n_heads,
+        step=1
+    )
 
-            attention_df = rank_induction_heads(model, induction_examples)
+    if "stop_sweep" not in st.session_state:
+        st.session_state.stop_sweep = False
 
-            df.ablation_df.merge(
-                attention_df,
-                on=["layer", "head"]
-            ) # merge 
+    col1, col2 = st.columns(2)
 
-            df["induction_score"] = (
-                df["drop"] * df["attention_score"]
-            )
+    with col1:
+        if st.button("Find induction heads"):
 
-            df = df.sort_values(
-                "induction_score",
-                ascending=False
-            )
+            progress_bar = st.progress(0, text="Starting...")
+            
+            def update_progress(value):
+                progress_bar.progress(value, text=f"Progress: {value*100:.1f}%")
 
-            st.session_state["head_df"] = df
+            st.session_state.stop_sweep = False
+
+            with st.spinner(
+                "Testing attention heads..."
+            ):
+
+                induction_examples = generate_induction_prompts(
+                    model,
+                    num_examples=num_examples
+                )
+
+                ablation_df = run_head_sweep(
+                    model,
+                    induction_examples,
+                    max_layers=max_layers,
+                    max_heads=max_heads,
+                    stop_flag=lambda:
+                        st.session_state.stop_sweep,
+                    progress=update_progress
+                )
+
+                if st.session_state.stop_sweep:
+                    st.warning(
+                        "Sweep stopped!"
+                    )
+                    st.stop()
+
+                attention_df = run_attention_sweep(
+                    model,
+                    induction_examples,
+                    max_layers=max_layers,
+                    max_heads=max_heads,
+                    stop_flag=lambda:
+                        st.session_state.stop_sweep,
+                    progress=update_progress
+                )
+
+                if st.session_state.stop_sweep:
+                    st.warning(
+                        "Sweep stopped!"
+                    )
+                    st.stop()
+
+                df = ablation_df.merge(
+                    attention_df,
+                    on=[
+                        "layer",
+                        "head"
+                    ]
+                )
+
+                df["induction_score"] = (
+                    df["drop"]
+                    *
+                    df["attention_score"]
+                )
+
+                df = df.sort_values(
+                    "induction_score",
+                    ascending=False
+                )
+
+                st.session_state["head_df"] = df
+
+    with col2:
+
+        if st.button("Stop experiment"):
+            st.session_state.stop_sweep = True
 
     if "head_df" in st.session_state:
 
@@ -229,16 +306,37 @@ with tab2:
             ascending=False
         )
 
-        st.dataframe(df.head(20))
+        #st.dataframe(df.head(20))
+        st.dataframe(
+            df[
+                [
+                    "layer",
+                    "head",
+                    "drop",
+                    "attention_score",
+                    "induction_score"
+                ]
+            ].head(20)
+        )
 
         chart = (
             alt.Chart(df.head(20))
             .mark_bar()
             .encode(
-                x=alt.X("layer:N"),
-                y=alt.Y("drop:Q"),
-                color="head:N"
+                x=alt.X(
+                    "layer:N",
+                    title="Layer"
+                ),
+                y=alt.Y(
+                    "induction_score:Q",
+                    title="Induction score"
+                ),
+                color=alt.Color(
+                    "head:N",
+                    title="Head"
+                )
             )
         )
-        st.altair_chart(chart)
+
+        st.altair_chart(chart, use_container_width=True)
 
