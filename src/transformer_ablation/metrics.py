@@ -64,3 +64,40 @@ def induction_score(model, examples, hooks=None):
         scores.append(final_logits[target].item())
 
     return sum(scores) / len(scores)
+
+def induction_attention_score(model, examples):
+    n_layers = model.cfg.n_layers
+    n_heads = model.cfg.n_heads
+
+    scores = torch.zeros(n_layers, n_heads)
+
+    counts = torch.zeros(n_layers, n_heads)
+
+    for ex in examples:
+        tokens = ex["tokens"]
+
+        _, cache = model.run_with_cache(
+            tokens,
+            names_filter=lambda name: "pattern" in name 
+        )
+
+        for layer in range(n_layers):
+            pattern = cache[
+                f"blocks.{layer}.attn.hook_pattern"
+            ]
+
+            # shape: batch, heads, query, key
+
+            pattern = pattern[0]
+
+            final_position = tokens.shape[1] - 1
+
+            previous_position = 0
+
+            for head in range(n_heads):
+                attention = pattern[head, final_position, previous_position]
+
+                scores[layer, head] += attention 
+                counts[layer, head] += 1
+
+    return scores / counts

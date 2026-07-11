@@ -13,7 +13,7 @@ def run_ablation_sweep(model, examples, ablation_types: list[str]) -> pd.DataFra
             hooks = make_hooks(ablation_type, layer)
             ablated = mean_logit_diff(model, examples, hooks=hooks)
             drop = baseline - ablated
-
+    
             rows.append({
                 "layer": layer,
                 "ablation_type": ablation_type,
