@@ -55,20 +55,14 @@ def induction_score(model, examples, hooks=None):
 
         tokens = model.to_tokens(ex.prompt)
 
-        answer_token = model.to_tokens(
-            ex.answer,
-            prepend_bos=False
-        )
+        answer_token = model.to_tokens(ex.answer, prepend_bos=False)
 
         answer_id = answer_token.item()
 
         with torch.no_grad():
 
             if hooks:
-                logits = model.run_with_hooks(
-                    tokens,
-                    fwd_hooks=hooks
-                )
+                logits = model.run_with_hooks(tokens, fwd_hooks=hooks)
             else:
                 logits = model(tokens)
 
@@ -101,19 +95,12 @@ def induction_attention_score(model, examples, max_layers=None, max_heads=None):
 
         for layer in range(max_layers):
 
-            pattern = cache[
-                f"blocks.{layer}.attn.hook_pattern"
-            ]
+            pattern = cache[f"blocks.{layer}.attn.hook_pattern"]
 
             query_position = tokens.shape[1] - 1 # final position
             key_position = example.repeat_position # position of the repeated token
 
-            values = pattern[
-                0,
-                :max_heads,
-                query_position,
-                key_position
-            ]
+            values = pattern[0, :max_heads, query_position, key_position]
 
             scores[layer] += values
 
@@ -121,7 +108,6 @@ def induction_attention_score(model, examples, max_layers=None, max_heads=None):
 
     for layer in scores:
         for head in range(max_heads):
-
             rows.append(
                 {
                     "layer": layer,
