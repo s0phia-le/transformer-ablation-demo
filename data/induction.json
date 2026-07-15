@@ -1,0 +1,27 @@
+[
+  {
+    "prompt": "The dog chased the ball. The dog",
+    "answer": " chased",
+    "repeat_position": 1
+  },
+  {
+    "prompt": "The cat sat on the mat. The cat",
+    "answer": " sat",
+    "repeat_position": 1
+  },
+  {
+    "prompt": "The bird flew over the tree. The bird",
+    "answer": " flew",
+    "repeat_position": 1
+  },
+  {
+    "prompt": "The fish swam in the pond. The fish",
+    "answer": " swam",
+    "repeat_position": 1
+  },
+  {
+    "prompt": "The horse galloped across the field. The horse",
+    "answer": " galloped",
+    "repeat_position": 1
+  }
+]

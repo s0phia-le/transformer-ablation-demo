@@ -38,3 +38,9 @@ def load_config(path: str | Path) -> AblationConfig:
 def _resolve(root: Path, path_value: str) -> Path:
     path = Path(path_value)
     return path if path.is_absolute() else root / path
+
+@dataclass
+class InductionExample:
+    prompt: str
+    answer: str
+    repeat_position: int = None
